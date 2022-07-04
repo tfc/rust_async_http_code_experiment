@@ -1,27 +1,26 @@
 use std::io::BufRead;
 use std::sync::mpsc::sync_channel;
 use std::time::Instant;
+use std::iter::repeat_with;
 
 #[tokio::main]
 async fn main() -> Result<(), Box<dyn std::error::Error>> {
-    let file = std::fs::File::open("urls.txt")?;
-    let buffile = std::io::BufReader::new(file);
+    let (url_producer_handle, rx_urls) = {
+        let (mut tx_urls, rx_urls) = spmc::channel();
+        let file = std::fs::File::open("urls.txt")?;
+        let buffile = std::io::BufReader::new(file);
+        let handle = tokio::spawn(async move {
+            for line in buffile.lines() {
+                let line = line.unwrap();
+                tx_urls.send(line).unwrap();
+            };
+        });
+        (handle, rx_urls)
+    };
 
-    let (mut tx_urls, rx_urls) = spmc::channel();
-
-    let url_producer_handle = tokio::spawn(async move {
-        for line in buffile.lines() {
-            let line = line.unwrap();
-            tx_urls.send(line).unwrap();
-        };
-        drop(tx_urls)
-    });
-
-    let workers = 1000;
-
-    let (tx_results, rx_results) = sync_channel(workers);
-
-    let worker_handles : Vec<_> = {
+    let (worker_handles, rx_results) : (Vec<_>, _) = {
+        let workers = 1000;
+        let (tx_results, rx_results) = sync_channel(workers);
         let client = reqwest::Client::new();
         let create_worker = move || {
             let client = client.clone();
@@ -38,7 +37,7 @@ async fn main() -> Result<(), Box<dyn std::error::Error>> {
                 drop(tx);
             })
         };
-        (0..workers).map(|_x| create_worker()).collect()
+        (repeat_with(create_worker).take(workers).collect(), rx_results)
     };
 
     let result_handle = tokio::spawn(async move {

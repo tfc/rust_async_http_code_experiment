@@ -34,7 +34,6 @@ async fn main() -> Result<(), Box<dyn std::error::Error>> {
                     let item = resp.and_then(|r| { Ok(r.status().as_u16()) });
                     tx.send((line, item, duration)).unwrap();
                 }
-                drop(tx);
             })
         };
         (repeat_with(create_worker).take(workers).collect(), rx_results)

@@ -1,4 +1,4 @@
-https://www.google.de
-https://qasm.de
-https://www.qasm.de
-https://yahoo.de
+https://google.com
+https://fastly.com
+https://nixcademy.com
+https://galowicz.de

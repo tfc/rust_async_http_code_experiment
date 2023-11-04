@@ -108,12 +108,9 @@
             crossPkgs.callPackage crateExpression { };
         };
 
-        checks = {
-          inherit (config.packages)
-            default
-            docs
-            ;
+        checks = config.packages // {
 
+          # With the current inputs, this fails
           hello-rust-audit = craneLib.cargoAudit {
             inherit (inputs) advisory-db;
             inherit src;

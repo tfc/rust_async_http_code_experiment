@@ -9,13 +9,8 @@
     advisory-db.flake = false;
     crane.url = "github:ipetkov/crane";
     crane.inputs.nixpkgs.follows = "nixpkgs";
-
-    rust-overlay = {
-      url = "github:oxalica/rust-overlay";
-      inputs = {
-        nixpkgs.follows = "nixpkgs";
-      };
-    };
+    rust-overlay.url = "github:oxalica/rust-overlay";
+    rust-overlay.inputs.nixpkgs.follows = "nixpkgs";
   };
 
   outputs = inputs: inputs.flake-parts.lib.mkFlake { inherit inputs; } {
@@ -45,14 +40,14 @@
         packages = {
           default = craneLib.buildPackage {
             inherit cargoArtifacts src;
-          buildInputs = with pkgs; [ openssl pkg-config ]
-            ++ pkgs.lib.optionals pkgs.stdenv.isDarwin [ iconv darwin.apple_sdk.frameworks.Security ];
+            buildInputs = with pkgs; [ openssl pkg-config ]
+              ++ pkgs.lib.optionals pkgs.stdenv.isDarwin [ iconv darwin.apple_sdk.frameworks.Security ];
           };
 
           docs = craneLib.cargoDoc {
             inherit cargoArtifacts src;
           };
-      } // pkgs.lib.optionalAttrs (pkgs.stdenv.isLinux) {
+        } // pkgs.lib.optionalAttrs pkgs.stdenv.isLinux {
           static =
             let
               staticPkgs = import inputs.nixpkgs {
@@ -68,18 +63,18 @@
                     targets = [ "${archPrefix}-unknown-darwin-musl" ];
                   };
                 in
-                  (inputs.crane.mkLib staticPkgs).overrideToolchain rustToolchain;
+                (inputs.crane.mkLib staticPkgs).overrideToolchain rustToolchain;
 
             in
-              staticCraneLib.buildPackage {
-                inherit src;
+            staticCraneLib.buildPackage {
+              inherit src;
 
-                CARGO_BUILD_TARGET = "${archPrefix}-unknown-darwin-musl";
-                CARGO_BUILD_RUSTFLAGS = "-C target-feature=+crt-static";
+              CARGO_BUILD_TARGET = "${archPrefix}-unknown-darwin-musl";
+              CARGO_BUILD_RUSTFLAGS = "-C target-feature=+crt-static";
 
-                nativeBuildInputs = [ pkgs.pkg-config ];
-                buildInputs = [ pkgs.pkgsStatic.openssl ];
-              };
+              nativeBuildInputs = [ pkgs.pkg-config ];
+              buildInputs = [ pkgs.pkgsStatic.openssl ];
+            };
         } // pkgs.lib.optionalAttrs (pkgs.stdenv.isLinux && !pkgs.stdenv.isAarch64) {
           crossArm =
             let
@@ -98,7 +93,7 @@
 
               craneLib = (inputs.crane.mkLib crossPkgs).overrideToolchain rustToolchain;
 
-              crateExpression = { stdenv, lib, pkg-config, openssl }:
+              crateExpression = { stdenv, pkg-config, openssl }:
                 craneLib.buildPackage {
                   inherit src;
 
@@ -110,7 +105,7 @@
                   HOST_CC = "${stdenv.cc.nativePrefix}cc";
                 };
             in
-              crossPkgs.callPackage crateExpression { };
+            crossPkgs.callPackage crateExpression { };
         };
 
         checks = {

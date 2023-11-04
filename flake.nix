@@ -60,7 +60,7 @@
               staticCraneLib =
                 let
                   rustToolchain = staticPkgs.rust-bin.stable.latest.default.override {
-                    targets = [ "${archPrefix}-unknown-darwin-musl" ];
+                    targets = [ "${archPrefix}-unknown-linux-musl" ];
                   };
                 in
                 (inputs.crane.mkLib staticPkgs).overrideToolchain rustToolchain;
@@ -69,7 +69,7 @@
             staticCraneLib.buildPackage {
               inherit src;
 
-              CARGO_BUILD_TARGET = "${archPrefix}-unknown-darwin-musl";
+              CARGO_BUILD_TARGET = "${archPrefix}-unknown-linux-musl";
               CARGO_BUILD_RUSTFLAGS = "-C target-feature=+crt-static";
 
               nativeBuildInputs = [ pkgs.pkg-config ];

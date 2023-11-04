@@ -31,7 +31,8 @@
         src = craneLib.cleanCargoSource (craneLib.path ./.);
         cargoArtifacts = craneLib.buildDepsOnly {
           inherit src;
-          buildInputs = with pkgs; [ openssl pkg-config ];
+          buildInputs = with pkgs; [ openssl pkg-config ]
+            ++ pkgs.lib.optionals pkgs.stdenv.isDarwin [ iconv darwin.apple_sdk.frameworks.Security ];
         };
 
       in
@@ -44,12 +45,14 @@
         packages = {
           default = craneLib.buildPackage {
             inherit cargoArtifacts src;
+          buildInputs = with pkgs; [ openssl pkg-config ]
+            ++ pkgs.lib.optionals pkgs.stdenv.isDarwin [ iconv darwin.apple_sdk.frameworks.Security ];
           };
 
           docs = craneLib.cargoDoc {
             inherit cargoArtifacts src;
           };
-
+      } // pkgs.lib.optionalAttrs (pkgs.stdenv.isLinux) {
           static =
             let
               staticPkgs = import inputs.nixpkgs {
@@ -62,7 +65,7 @@
               staticCraneLib =
                 let
                   rustToolchain = staticPkgs.rust-bin.stable.latest.default.override {
-                    targets = [ "${archPrefix}-unknown-linux-musl" ];
+                    targets = [ "${archPrefix}-unknown-darwin-musl" ];
                   };
                 in
                   (inputs.crane.mkLib staticPkgs).overrideToolchain rustToolchain;
@@ -71,16 +74,17 @@
               staticCraneLib.buildPackage {
                 inherit src;
 
-                CARGO_BUILD_TARGET = "x86_64-unknown-linux-musl";
+                CARGO_BUILD_TARGET = "${archPrefix}-unknown-darwin-musl";
                 CARGO_BUILD_RUSTFLAGS = "-C target-feature=+crt-static";
 
                 nativeBuildInputs = [ pkgs.pkg-config ];
                 buildInputs = [ pkgs.pkgsStatic.openssl ];
               };
-        } // pkgs.lib.optionalAttrs (!pkgs.stdenv.isAarch64) {
+        } // pkgs.lib.optionalAttrs (pkgs.stdenv.isLinux && !pkgs.stdenv.isAarch64) {
           crossArm =
             let
               crossSystem = "aarch64-linux";
+              target = "aarch64-unknown-linux-gnu";
 
               crossPkgs = import inputs.nixpkgs {
                 inherit crossSystem;
@@ -89,12 +93,12 @@
               };
 
               rustToolchain = crossPkgs.pkgsBuildHost.rust-bin.stable.latest.default.override {
-                targets = [ "aarch64-unknown-linux-gnu" ];
+                targets = [ target ];
               };
 
               craneLib = (inputs.crane.mkLib crossPkgs).overrideToolchain rustToolchain;
 
-              crateExpression = { openssl , lib , pkg-config , stdenv }:
+              crateExpression = { stdenv, lib, pkg-config, openssl }:
                 craneLib.buildPackage {
                   inherit src;
 
@@ -102,7 +106,7 @@
                   buildInputs = [ openssl ];
 
                   CARGO_TARGET_AARCH64_UNKNOWN_LINUX_GNU_LINKER = "${stdenv.cc.targetPrefix}cc";
-                  CARGO_BUILD_TARGET = "aarch64-unknown-linux-gnu";
+                  CARGO_BUILD_TARGET = target;
                   HOST_CC = "${stdenv.cc.nativePrefix}cc";
                 };
             in

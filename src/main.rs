@@ -1,7 +1,7 @@
 use std::io::BufRead;
+use std::iter::repeat_with;
 use std::sync::mpsc::sync_channel;
 use std::time::Instant;
-use std::iter::repeat_with;
 
 #[tokio::main]
 async fn main() -> Result<(), Box<dyn std::error::Error>> {
@@ -13,12 +13,12 @@ async fn main() -> Result<(), Box<dyn std::error::Error>> {
             for line in buffile.lines() {
                 let line = line.unwrap();
                 tx_urls.send(line).unwrap();
-            };
+            }
         });
         (handle, rx_urls)
     };
 
-    let (worker_handles, rx_results) : (Vec<_>, _) = {
+    let (worker_handles, rx_results): (Vec<_>, _) = {
         let workers = 1000;
         let (tx_results, rx_results) = sync_channel(workers);
         let client = reqwest::Client::new();
@@ -31,19 +31,22 @@ async fn main() -> Result<(), Box<dyn std::error::Error>> {
                     let start = Instant::now();
                     let resp = client.get(&line).send().await;
                     let duration = start.elapsed();
-                    let item = resp.and_then(|r| { Ok(r.status().as_u16()) });
+                    let item = resp.map(|r| r.status().as_u16());
                     tx.send((line, item, duration)).unwrap();
                 }
             })
         };
-        (repeat_with(create_worker).take(workers).collect(), rx_results)
+        (
+            repeat_with(create_worker).take(workers).collect(),
+            rx_results,
+        )
     };
 
     let result_handle = tokio::spawn(async move {
         while let Ok((url, maybe_result, duration)) = rx_results.recv() {
             let (code, error) = match maybe_result {
                 Ok(result) => (result.to_string(), String::new()),
-                Err(x) => (String::new(), x.to_string())
+                Err(x) => (String::new(), x.to_string()),
             };
             println!("{},{},{:?},{}", url, code, duration, error);
         }
@@ -57,4 +60,3 @@ async fn main() -> Result<(), Box<dyn std::error::Error>> {
 
     Ok(())
 }
-

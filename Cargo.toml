@@ -6,8 +6,8 @@ edition = "2021"
 # See more keys and their definitions at https://doc.rust-lang.org/cargo/reference/manifest.html
 
 [dependencies]
-spmc = { version = "0.3.0" }
-tokio = { version = "0.2.22", features = ["full"] }
-reqwest = { version = "0.10.8", features = ["blocking"] }
-async-channel = "1.4.1"
-is_type = "0.2.1"
+spmc = { version = "*" }
+tokio = { version = "*", features = ["full"] }
+reqwest = { version = "*", features = ["blocking"] }
+async-channel = "*"
+is_type = "*"

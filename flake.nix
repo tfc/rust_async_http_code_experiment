@@ -109,8 +109,6 @@
         };
 
         checks = config.packages // {
-
-          # With the current inputs, this fails
           hello-rust-audit = craneLib.cargoAudit {
             inherit (inputs) advisory-db;
             inherit src;

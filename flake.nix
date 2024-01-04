@@ -132,7 +132,7 @@
               shellcheck.enable = true;
               shfmt.enable = true;
             };
-            settings.rust.cargoManifestPath = "./rust/Cargo.toml";
+            settings.rust.cargoManifestPath = "./Cargo.toml";
           };
         };
       };

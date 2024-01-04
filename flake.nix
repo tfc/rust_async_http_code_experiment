@@ -114,11 +114,15 @@
             inherit src;
           };
 
+          clippy = craneLib.cargoClippy {
+            inherit cargoArtifacts src;
+            cargoClippyExtraArgs = "--all-targets -- --deny warnings";
+          };
+
           pre-commit-check = inputs.pre-commit-hooks.lib.${system}.run {
             src = ./.;
             hooks = {
               # Rust
-              clippy.enable = true;
               rustfmt.enable = true;
 
               # Nix

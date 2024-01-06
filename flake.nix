@@ -79,17 +79,21 @@
               nativeBuildInputs = [ pkgs.pkg-config ];
               buildInputs = [ pkgs.pkgsStatic.openssl ];
             };
-        } // pkgs.lib.optionalAttrs (pkgs.stdenv.isLinux && !pkgs.stdenv.isAarch64) {
-          crossArm =
+        } // pkgs.lib.optionalAttrs pkgs.stdenv.isLinux {
+          cross =
             let
-              crossSystem = "aarch64-linux";
-              target = "aarch64-unknown-linux-gnu";
+              crossMap = {
+                x86_64-linux = "aarch64-linux";
+                aarch64-linux = "x86_64-linux";
+              };
+              crossSystem = crossMap.${system};
 
               crossPkgs = import inputs.nixpkgs {
                 inherit crossSystem;
                 localSystem = system;
                 overlays = [ (import inputs.rust-overlay) ];
               };
+              target = crossPkgs.stdenv.targetPlatform.config;
 
               rustToolchain = crossPkgs.pkgsBuildHost.rust-bin.stable.latest.default.override {
                 targets = [ target ];
@@ -97,14 +101,14 @@
 
               craneLib = (inputs.crane.mkLib crossPkgs).overrideToolchain rustToolchain;
 
-              crateExpression = { stdenv, pkg-config, openssl }:
+              crateExpression = { lib, stdenv, pkg-config, openssl }:
                 craneLib.buildPackage {
                   inherit src;
 
                   nativeBuildInputs = [ pkg-config ];
                   buildInputs = [ openssl ];
 
-                  CARGO_TARGET_AARCH64_UNKNOWN_LINUX_GNU_LINKER = "${stdenv.cc.targetPrefix}cc";
+                  "CARGO_TARGET_${lib.toUpper (lib.replaceStrings ["-"] ["_"] target)}_LINKER" = "${stdenv.cc.targetPrefix}cc";
                   CARGO_BUILD_TARGET = target;
                   HOST_CC = "${stdenv.cc.nativePrefix}cc";
                 };

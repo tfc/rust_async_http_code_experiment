@@ -41,7 +41,11 @@
           default = craneLib.buildPackage {
             inherit cargoArtifacts src;
             buildInputs = with pkgs; [ openssl pkg-config ]
-              ++ pkgs.lib.optionals pkgs.stdenv.isDarwin [ iconv darwin.apple_sdk.frameworks.Security ];
+              ++ pkgs.lib.optionals pkgs.stdenv.isDarwin [
+              iconv
+              darwin.apple_sdk.frameworks.Security
+              darwin.apple_sdk.frameworks.SystemConfiguration
+            ];
           };
 
           docs = craneLib.cargoDoc {

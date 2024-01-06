@@ -82,24 +82,28 @@
         } // pkgs.lib.optionalAttrs pkgs.stdenv.isLinux {
           cross =
             let
-              crossMap = {
-                x86_64-linux = "aarch64-linux";
-                aarch64-linux = "x86_64-linux";
-              };
-              crossSystem = crossMap.${system};
-
-              crossPkgs = import inputs.nixpkgs {
-                inherit crossSystem;
-                localSystem = system;
-                overlays = [ (import inputs.rust-overlay) ];
-              };
+              crossPkgs =
+                let
+                  crossMap = {
+                    x86_64-linux = "aarch64-linux";
+                    aarch64-linux = "x86_64-linux";
+                  };
+                  crossSystem = crossMap.${system};
+                in
+                import inputs.nixpkgs {
+                  inherit crossSystem;
+                  localSystem = system;
+                  overlays = [ (import inputs.rust-overlay) ];
+                };
               target = crossPkgs.stdenv.targetPlatform.config;
 
-              rustToolchain = crossPkgs.pkgsBuildHost.rust-bin.stable.latest.default.override {
-                targets = [ target ];
-              };
-
-              craneLib = (inputs.crane.mkLib crossPkgs).overrideToolchain rustToolchain;
+              craneLib =
+                let
+                  rustToolchain = crossPkgs.pkgsBuildHost.rust-bin.stable.latest.default.override {
+                    targets = [ target ];
+                  };
+                in
+                (inputs.crane.mkLib crossPkgs).overrideToolchain rustToolchain;
 
               crateExpression = { lib, stdenv, pkg-config, openssl }:
                 craneLib.buildPackage {

@@ -96,6 +96,7 @@
                   overlays = [ (import inputs.rust-overlay) ];
                 };
               target = crossPkgs.stdenv.targetPlatform.config;
+              inherit (crossPkgs.stdenv.targetPlatform.rust) cargoEnvVarTarget;
 
               craneLib =
                 let
@@ -105,14 +106,14 @@
                 in
                 (inputs.crane.mkLib crossPkgs).overrideToolchain rustToolchain;
 
-              crateExpression = { lib, stdenv, pkg-config, openssl }:
+              crateExpression = { stdenv, pkg-config, openssl }:
                 craneLib.buildPackage {
                   inherit src;
 
                   nativeBuildInputs = [ pkg-config ];
                   buildInputs = [ openssl ];
 
-                  "CARGO_TARGET_${lib.toUpper (lib.replaceStrings ["-"] ["_"] target)}_LINKER" = "${stdenv.cc.targetPrefix}cc";
+                  "CARGO_TARGET_${cargoEnvVarTarget}_LINKER" = "${stdenv.cc.targetPrefix}cc";
                   CARGO_BUILD_TARGET = target;
                   HOST_CC = "${stdenv.cc.nativePrefix}cc";
                 };
